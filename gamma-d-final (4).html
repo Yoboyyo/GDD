@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customizable Gamma D</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://unpkg.com/three@0.128.0/build/three.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            flex-direction: row;
+        }
+        
+        .sidebar {
+            width: 320px;
+            min-width: 320px;
+            background: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 24px 24px 16px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .logo {
+            width: 100px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .nav-menu {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        
+        .nav-button {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            border-radius: 6px;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-button::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            background: linear-gradient(to top, #667eea, #764ba2);
+            transition: height 0.4s ease;
+            z-index: -1;
+        }
+        
+        .nav-button:hover::before {
+            height: 100%;
+        }
+        
+        .nav-button:hover {
+            color: white;
+        }
+        
+        .nav-button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: #333;
+        }
+        
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 12px;
+            color: #444;
+        }
+        
+        p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        
+        .loading {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #667eea;
+            transition: width 0.3s;
+            border-radius: 4px;
+        }
+        
+        .progress-text {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 16px;
+        }
+        
+        .part-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 8px;
+        }
+        
+        .part-button {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #444;
+            transition: background 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .part-button::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            background: linear-gradient(to top, #667eea20, #764ba220);
+            transition: height 0.4s ease;
+            z-index: 0;
+        }
+        
+        .part-button:hover::before {
+            height: 100%;
+        }
+        
+        .part-button > * {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .arrow {
+            transition: transform 0.3s;
+        }
+        
+        .arrow.open {
+            transform: rotate(180deg);
+        }
+        
+        .options {
+            padding: 16px;
+            border-top: 1px solid #eee;
+            display: none;
+        }
+        
+        .options.open {
+            display: block;
+        }
+        
+        .option-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .color-button {
+            width: 48px;
+            height: 48px;
+            border-radius: 4px;
+            border: 2px solid #ccc;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .color-button:hover {
+            border-color: #666;
+        }
+        
+        .texture-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .texture-button {
+            padding: 12px;
+            background: #e5e5e5;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        .texture-button:hover {
+            background: #d4d4d4;
+        }
+        
+        .save-section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-top: 24px;
+        }
+        
+        .save-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .save-section p {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 16px;
+        }
+        
+        .email-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        
+        .email-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .submit-button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .submit-button:hover {
+            background: #5568d3;
+        }
+        
+        .submit-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-top: 12px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .viewer {
+            flex: 1;
+            position: relative;
+            min-height: 400px;
+            background: linear-gradient(to bottom, #000000, #1a1a1a);
+            transition: background 1s ease;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+        
+        /* Social Media Links */
+        .social-links {
+            padding: 20px 24px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+        
+        .social-link {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            text-decoration: none;
+            font-size: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .social-link::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0;
+            transition: height 0.4s ease;
+            z-index: 0;
+        }
+        
+        .social-link:hover::before {
+            height: 100%;
+        }
+        
+        .social-link.instagram::before { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); }
+        .social-link.youtube::before { background: #FF0000; }
+        .social-link.facebook::before { background: #1877F2; }
+        .social-link.tiktok::before { background: #000000; }
+        
+        .social-link:hover {
+            color: white;
+            transform: translateY(-3px);
+        }
+        
+        .social-link > span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Scene Overlay Text */
+        .scene-overlay {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .scene-text {
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 12px 20px;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .scene-text h3 {
+            font-size: 14px;
+            color: #888;
+            margin: 0 0 5px 0;
+            font-weight: 500;
+        }
+        
+        .scene-text .value {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+            color: white;
+        }
+        
+        .scene-text.warning .value {
+            color: #ff6b6b;
+        }
+        
+        .scene-text.success .value {
+            color: #4ecdc4;
+        }
+        
+        .countdown {
+            display: flex;
+            gap: 15px;
+            margin-top: 8px;
+        }
+        
+        .countdown-item {
+            text-align: center;
+        }
+        
+        .countdown-number {
+            font-size: 28px;
+            font-weight: 800;
+            color: #667eea;
+            display: block;
+            line-height: 1;
+        }
+        
+        .countdown-label {
+            font-size: 10px;
+            color: #aaa;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        
+        /* Bottom CTA */
+        .bottom-cta {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+        }
+        
+        .preorder-button {
+            padding: 16px 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .preorder-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6);
+        }
+        
+        .preorder-button:active {
+            transform: translateY(0);
+        }
+        
+        .release-date {
+            margin-top: 12px;
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Reset Button */
+        .reset-button {
+            width: 100%;
+            padding: 12px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .reset-button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+        
+        .reset-button:active {
+            transform: translateY(0);
+        }
+        
+        /* Checkout Modal */
+        .checkout-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .checkout-modal.active {
+            display: flex;
+        }
+        
+        .checkout-content {
+            background: white;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .checkout-header {
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .checkout-header h2 {
+            margin: 0;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .checkout-header p {
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .checkout-body {
+            padding: 30px;
+        }
+        
+        .checkout-section {
+            margin-bottom: 30px;
+        }
+        
+        .checkout-section h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            margin: 0 0 15px 0;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 8px;
+        }
+        
+        .customization-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+        
+        .customization-item:last-child {
+            border-bottom: none;
+        }
+        
+        .customization-item .label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .customization-item .value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .price-breakdown {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .price-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 15px;
+        }
+        
+        .price-item.total {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 2px solid #ddd;
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .checkout-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
+        
+        .btn-primary {
+            flex: 1;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            flex: 1;
+            padding: 16px;
+            background: white;
+            color: #666;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .payment-note {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #856404;
+        }
+        
+        /* Mobile toggle button */
+        .mobile-toggle {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #667eea;
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mobile-toggle:active {
+            transform: scale(0.95);
+        }
+        
+        /* Tablet and below (under 1024px) */
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                min-width: unset;
+                max-height: 50vh;
+                border-bottom: 2px solid #e0e0e0;
+            }
+            
+            .viewer {
+                height: 50vh;
+                min-height: 300px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            h2 {
+                font-size: 18px;
+            }
+        }
+        
+        /* Mobile (under 768px) */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100vh;
+                max-height: 100vh;
+                z-index: 999;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            
+            .viewer {
+                width: 100%;
+                height: 100vh;
+            }
+            
+            .mobile-toggle {
+                display: flex;
+            }
+            
+            .header {
+                padding: 16px 16px 12px 16px;
+            }
+            
+            .logo {
+                width: 80px;
+                height: 48px;
+                margin-bottom: 12px;
+            }
+            
+            .nav-menu {
+                gap: 8px;
+            }
+            
+            .nav-button {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+            
+            .content {
+                padding: 16px;
+            }
+            
+            h1 {
+                font-size: 18px;
+                margin-bottom: 16px;
+            }
+            
+            h2 {
+                font-size: 16px;
+                margin-top: 16px;
+                margin-bottom: 8px;
+            }
+            
+            p {
+                font-size: 13px;
+            }
+            
+            .part-button {
+                padding: 12px;
+                font-size: 13px;
+            }
+            
+            .color-grid {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+            }
+            
+            .color-button {
+                width: 42px;
+                height: 42px;
+            }
+            
+            .texture-button {
+                padding: 10px;
+                font-size: 11px;
+            }
+        }
+        
+        /* Small mobile (under 480px) */
+        @media (max-width: 480px) {
+            .logo {
+                width: 80px;
+                height: 32px;
+                font-size: 14px;
+            }
+            
+            .nav-button {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            
+            .color-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .color-button {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="header">
+                <div class="logo">
+                    <img src="data:image/png;base64,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" alt="Logo">
+                </div>
+                <div class="nav-menu">
+                    <button class="nav-button active" onclick="showPage('home')">Home</button>
+                    <button class="nav-button" onclick="showPage('about')">About Us</button>
+                    <button class="nav-button" onclick="showPage('privacy')">Privacy Policy</button>
+                </div>
+            </div>
+            
+            <div class="content">
+                <!-- HOME PAGE -->
+                <div id="home-page" class="page active">
+                    <h1>Customizable Gamma D</h1>
+                    
+                    <div class="loading" id="loading">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-text" id="progress-text">Loading model... 0%</div>
+                    </div>
+                    
+                    <div id="parts-list"></div>
+                    
+                    <!-- Reset Button -->
+                    <button class="reset-button" onclick="resetCustomizations()">
+                        🔄 Reset to Default
+                    </button>
+                    
+                    <!-- Save Customization Section -->
+                    <div class="save-section">
+                        <h3>💾 Save Your Design</h3>
+                        <p>Enter your email to receive your customization or get notified when this design is available.</p>
+                        <input 
+                            type="email" 
+                            id="user-email" 
+                            class="email-input" 
+                            placeholder="your.email@example.com"
+                            required
+                        >
+                        <button class="submit-button" onclick="submitCustomization()">
+                            Submit Design
+                        </button>
+                        <div id="success-msg" class="success-message">
+                            ✓ Success! Your design has been submitted.
+                        </div>
+                        <div id="error-msg" class="error-message">
+                            ✗ Please enter a valid email address.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- ABOUT US PAGE -->
+                <div id="about-page" class="page">
+                    <h1>About Us</h1>
+                    <p>Welcome to Gamma D Customizer, your premier destination for personalized 3D model customization.</p>
+                    
+                    <h2>Our Mission</h2>
+                    <p>We believe in empowering creativity through technology. Our mission is to provide an intuitive platform where anyone can bring their unique vision to life through customizable 3D designs.</p>
+                    
+                    <h2>What We Do</h2>
+                    <p>We specialize in creating interactive 3D customization experiences that put you in control. From colors to textures, materials to animations, every aspect of your design is at your fingertips.</p>
+                    
+                    <h2>Our Technology</h2>
+                    <p>Built with cutting-edge web technologies including Three.js and WebGL, our platform delivers smooth, real-time 3D rendering directly in your browser. No downloads, no installations—just pure creative freedom.</p>
+                    
+                    <h2>Why Choose Us</h2>
+                    <p>• Real-time 3D customization</p>
+                    <p>• Intuitive user interface</p>
+                    <p>• Advanced material options</p>
+                    <p>• Mobile and desktop compatible</p>
+                    <p>• Fast, secure, and reliable</p>
+                    
+                    <h2>Contact Us</h2>
+                    <p>Have questions or feedback? We'd love to hear from you! Reach out to us at contact@gammad.com</p>
+                </div>
+                
+                <!-- PRIVACY POLICY PAGE -->
+                <div id="privacy-page" class="page">
+                    <h1>Privacy Policy</h1>
+                    <p><em>Last Updated: October 31, 2025</em></p>
+                    
+                    <h2>Introduction</h2>
+                    <p>This Privacy Policy describes how Gamma D Customizer ("we," "us," or "our") collects, uses, and shares information about you when you use our 3D customization platform.</p>
+                    
+                    <h2>Information We Collect</h2>
+                    <p><strong>Usage Information:</strong> We collect information about how you interact with our platform, including the features you use, the customizations you create, and the time spent on our site.</p>
+                    <p><strong>Device Information:</strong> We may collect information about the device you use to access our service, including browser type, operating system, and IP address.</p>
+                    <p><strong>Customization Data:</strong> The 3D model configurations and customizations you create are processed in real-time in your browser.</p>
+                    
+                    <h2>How We Use Your Information</h2>
+                    <p>We use the information we collect to:</p>
+                    <p>• Provide and improve our customization platform</p>
+                    <p>• Understand how users interact with our features</p>
+                    <p>• Develop new features and enhancements</p>
+                    <p>• Ensure the security and integrity of our service</p>
+                    
+                    <h2>Data Storage</h2>
+                    <p>Your customizations are processed locally in your browser. We do not store your 3D model configurations on our servers unless you explicitly choose to save them.</p>
+                    
+                    <h2>Third-Party Services</h2>
+                    <p>We may use third-party services for analytics and performance monitoring. These services have their own privacy policies governing the use of your information.</p>
+                    
+                    <h2>Your Rights</h2>
+                    <p>You have the right to:</p>
+                    <p>• Access the information we hold about you</p>
+                    <p>• Request correction of your personal information</p>
+                    <p>• Request deletion of your personal information</p>
+                    <p>• Object to processing of your personal information</p>
+                    
+                    <h2>Security</h2>
+                    <p>We implement appropriate technical and organizational measures to protect your information against unauthorized access, alteration, disclosure, or destruction.</p>
+                    
+                    <h2>Changes to This Policy</h2>
+                    <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page and updating the "Last Updated" date.</p>
+                    
+                    <h2>Contact Us</h2>
+                    <p>If you have any questions about this Privacy Policy, please contact us at privacy@gammad.com</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="viewer">
+            <div id="canvas-container"></div>
+            
+            <!-- Scene Overlay Text -->
+            <div class="scene-overlay">
+                <div class="scene-text" id="customizations-left">
+                    <h3>Free Customizations Left</h3>
+                    <p class="value">5</p>
+                </div>
+                
+                <div class="scene-text success">
+                    <h3>$1000 Offer Left</h3>
+                    <p class="value">100</p>
+                </div>
+                
+                <div class="scene-text">
+                    <h3>Sale Ends In</h3>
+                    <div class="countdown">
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="days">00</span>
+                            <span class="countdown-label">Days</span>
+                        </div>
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="hours">00</span>
+                            <span class="countdown-label">Hours</span>
+                        </div>
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="minutes">00</span>
+                            <span class="countdown-label">Minutes</span>
+                        </div>
+                        <div class="countdown-item">
+                            <span class="countdown-number" id="seconds">00</span>
+                            <span class="countdown-label">Seconds</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom CTA -->
+            <div class="bottom-cta">
+                <button class="preorder-button" onclick="handlePreOrder()">
+                    Pre-Order Now
+                </button>
+                <div class="release-date">Releases December 2nd</div>
+            </div>
+            
+            <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        
+        <!-- Checkout Modal -->
+        <div class="checkout-modal" id="checkout-modal">
+            <div class="checkout-content">
+                <div class="checkout-header">
+                    <h2>Complete Your Order</h2>
+                    <p>Review your custom Gamma D configuration</p>
+                </div>
+                
+                <div class="checkout-body">
+                    <!-- Customization Summary -->
+                    <div class="checkout-section">
+                        <h3>📋 Your Customizations</h3>
+                        <div id="customization-summary"></div>
+                    </div>
+                    
+                    <!-- Price Breakdown -->
+                    <div class="checkout-section">
+                        <h3>💰 Price Breakdown</h3>
+                        <div class="price-breakdown">
+                            <div class="price-item">
+                                <span>Base Price</span>
+                                <span>$999.00</span>
+                            </div>
+                            <div class="price-item">
+                                <span>Custom Colors (<span id="extra-customizations">0</span> @ $50 each)</span>
+                                <span id="customization-cost">$0.00</span>
+                            </div>
+                            <div class="price-item">
+                                <span>Shipping</span>
+                                <span>$49.00</span>
+                            </div>
+                            <div class="price-item total">
+                                <span>Total</span>
+                                <span id="total-price">$1,048.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Customer Information -->
+                    <div class="checkout-section">
+                        <h3>📦 Shipping Information</h3>
+                        <div class="form-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="customer-name" placeholder="John Doe" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email *</label>
+                            <input type="email" id="customer-email" placeholder="john@example.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number *</label>
+                            <input type="tel" id="customer-phone" placeholder="+1 (555) 123-4567" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Shipping Address *</label>
+                            <input type="text" id="customer-address" placeholder="123 Main St, Apt 4B" required>
+                        </div>
+                        <div class="form-group">
+                            <label>City *</label>
+                            <input type="text" id="customer-city" placeholder="New York" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Country *</label>
+                            <select id="customer-country" required>
+                                <option value="">Select Country</option>
+                                <option value="US">United States</option>
+                                <option value="CA">Canada</option>
+                                <option value="UK">United Kingdom</option>
+                                <option value="AU">Australia</option>
+                                <option value="OTHER">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Payment Note -->
+                    <div class="payment-note">
+                        <strong>⚠️ Payment Integration Required</strong><br>
+                        To accept payments, integrate one of these services:<br>
+                        • Stripe (recommended) - stripe.com<br>
+                        • PayPal - paypal.com<br>
+                        • Square - squareup.com<br>
+                        See instructions below this form.
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="checkout-actions">
+                        <button class="btn-secondary" onclick="closeCheckout()">Cancel</button>
+                        <button class="btn-primary" onclick="processCheckout()">Place Order</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('mobile-open');
+        }
+        
+        // Navigation
+        function showPage(pageName) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active state from all nav buttons
+            document.querySelectorAll('.nav-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(pageName + '-page').classList.add('active');
+            
+            // Add active state to clicked button
+            event.target.classList.add('active');
+            
+            // Close mobile sidebar after navigation
+            if (window.innerWidth <= 768) {
+                document.querySelector('.sidebar').classList.remove('mobile-open');
+            }
+        }
+        
+        // Part mapping
+        const partMapping = {
+            head: ['Head'],
+            nose: ['Nose'],
+            mouth: ['Upper Mouth', 'Bottom Mouth'],
+            body: ['Body', 'Body Inner'],
+            tail: ['Tail'],
+            wheels: ['Weels'],
+            eyes: ['Right Eye', 'Left Eye'],
+            legs: ['Legs', 'LegHookFR', 'LegHookBL', 'LegHookFL', 'LegHookBR', 'BRLeg', 'BLLeg', 'FLLeg', 'FRLeg']
+        };
+
+        const parts = [
+            { display: 'Head', key: 'head' },
+            { display: 'Nose', key: 'nose' },
+            { display: 'Mouth', key: 'mouth' },
+            { display: 'Body', key: 'body' },
+            { display: 'Tail', key: 'tail' },
+            { display: 'Wheels', key: 'wheels' },
+            { display: 'Eyes', key: 'eyes' },
+            { display: 'Legs', key: 'legs' }
+        ];
+
+        const colorOptions = [
+            { name: 'Red', color: '#ff6b6b' },
+            { name: 'Blue', color: '#4ecdc4' },
+            { name: 'Green', color: '#96ceb4' },
+            { name: 'Yellow', color: '#ffeaa7' },
+            { name: 'Purple', color: '#a29bfe' },
+            { name: 'Pink', color: '#fd79a8' },
+            { name: 'Orange', color: '#fab1a0' },
+            { name: 'Dark', color: '#2d3436' },
+            { name: 'White', color: '#ffffff' },
+            { name: 'Black', color: '#000000' },
+        ];
+
+        const textureOptions = [
+            { name: 'Metallic', type: 'metallic' },
+            { name: 'Glossy', type: 'glossy' },
+            { name: 'Matte', type: 'matte' },
+            { name: 'Rough', type: 'rough' },
+            { name: 'Chrome', type: 'chrome' },
+            { name: 'Glass', type: 'glass' },
+            { name: 'Plastic', type: 'plastic' },
+            { name: 'Rubber', type: 'rubber' },
+        ];
+
+        const transparencyOptions = [
+            { name: '100%', value: 1.0 },
+            { name: '75%', value: 0.75 },
+            { name: '50%', value: 0.5 },
+            { name: '25%', value: 0.25 },
+        ];
+
+        const animationOptions = [
+            { name: 'Spin Y', type: 'spinY' },
+            { name: 'Spin X', type: 'spinX' },
+            { name: 'Spin Z', type: 'spinZ' },
+            { name: 'Bounce', type: 'bounce' },
+            { name: 'Wobble', type: 'wobble' },
+            { name: 'None', type: 'none' },
+        ];
+
+        // Animation states for each part
+        let partAnimations = {};
+        
+        // Track customizations
+        let customizationData = {
+            colors: {},
+            textures: {},
+            transparencies: {},
+            animations: {}
+        };
+        
+        let customizationCount = 0;
+        let freeCustomizationsLeft = 5;
+
+        // Global variables
+        let scene, camera, renderer, modelGroup, controls;
+        let partsRef = {};
+        let selectedPart = null;
+        let gridFloor, backgroundGradient;
+        let modelEntryAnimation = { active: true, progress: 0 };
+
+        // Initialize scene
+        function init() {
+            const container = document.getElementById('canvas-container');
+            
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = null; // Transparent to show CSS gradient
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75,
+                container.clientWidth / container.clientHeight,
+                0.1,
+                1000
+            );
+            camera.position.z = 8;
+            camera.position.y = 3;
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            // Grid Floor
+            const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+            gridHelper.position.y = -3;
+            scene.add(gridHelper);
+            gridFloor = gridHelper;
+
+            // Orbit Controls for 360° view
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = false;
+            controls.minDistance = 3;
+            controls.maxDistance = 20;
+            controls.maxPolarAngle = Math.PI;
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 10);
+            scene.add(directionalLight);
+
+            const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+            directionalLight2.position.set(-10, -10, -10);
+            scene.add(directionalLight2);
+
+            // Load model
+            loadModel();
+
+            // Animation loop
+            animate();
+
+            // Handle resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Create UI
+            createUI();
+            
+            // Start countdown
+            startCountdown();
+        }
+
+        function loadModel() {
+            const glbUrl = 'https://yoboyyo.github.io/GD/GD.glb';
+            
+            const loader = new THREE.GLTFLoader();
+            
+            loader.load(
+                glbUrl,
+                (gltf) => {
+                    modelGroup = gltf.scene;
+                    
+                    // Position model off-screen to the right for entry animation
+                    modelGroup.position.x = 15;
+                    
+                    // Initialize part groups
+                    Object.keys(partMapping).forEach(key => {
+                        partsRef[key] = [];
+                    });
+                    
+                    // Find all parts
+                    modelGroup.traverse((child) => {
+                        if (child.isMesh) {
+                            console.log('Found mesh:', child.name); // Debug log
+                            
+                            for (const [category, wompNames] of Object.entries(partMapping)) {
+                                if (wompNames.includes(child.name)) {
+                                    console.log(`Mapping ${child.name} to ${category}`); // Debug log
+                                    
+                                    if (child.material) {
+                                        child.material = child.material.clone();
+                                        if (!child.material.emissive) {
+                                            child.material.emissive = new THREE.Color(0x000000);
+                                        }
+                                    }
+                                    
+                                    // Center geometry for rotation pivot ONLY for tail
+                                    if (category === 'tail') {
+                                        try {
+                                            child.geometry.computeBoundingBox();
+                                            const bbox = child.geometry.boundingBox;
+                                            const center = new THREE.Vector3();
+                                            bbox.getCenter(center);
+                                            
+                                            child.geometry.translate(-center.x, -center.y, -center.z);
+                                            child.position.add(center);
+                                        } catch (e) {
+                                            console.error('Error centering tail:', e);
+                                        }
+                                    }
+                                    
+                                    // Store the part BEFORE geometry modification
+                                    partsRef[category].push(child);
+                                    console.log(`Added ${child.name} to ${category}, total: ${partsRef[category].length}`);
+                                    
+                                    // Set default glass texture with 50% transparency for all parts
+                                    if (child.material) {
+                                        const currentColor = child.material.color.getHex();
+                                        child.material = new THREE.MeshPhongMaterial({
+                                            color: currentColor,
+                                            emissive: 0x000000,
+                                            metalness: 0.0,
+                                            roughness: 0.0,
+                                            transparent: true,
+                                            opacity: 0.5,
+                                            shininess: 100
+                                        });
+                                    }
+                                    
+                                    break;
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Debug: Log what was found
+                    console.log('Parts found:');
+                    Object.keys(partsRef).forEach(k => {
+                        console.log(`  ${k}: ${partsRef[k].length} parts`, partsRef[k].map(m => m.name));
+                    });
+                    
+                    // Scale and center
+                    const box = new THREE.Box3().setFromObject(modelGroup);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+                    
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 5 / maxDim;
+                    modelGroup.scale.setScalar(scale);
+                    
+                    modelGroup.position.x = -center.x * scale;
+                    modelGroup.position.y = -center.y * scale;
+                    modelGroup.position.z = -center.z * scale;
+                    
+                    scene.add(modelGroup);
+                    
+                    // Hide loading
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    console.log('Model loaded successfully!');
+                },
+                (progress) => {
+                    if (progress.total > 0) {
+                        const percent = Math.round((progress.loaded / progress.total) * 100);
+                        document.getElementById('progress-fill').style.width = percent + '%';
+                        document.getElementById('progress-text').textContent = `Loading model... ${percent}%`;
+                    }
+                },
+                (error) => {
+                    console.error('Error loading model:', error);
+                    document.getElementById('progress-text').textContent = 'Error loading model!';
+                }
+            );
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Update orbit controls
+            if (controls) {
+                controls.update();
+            }
+            
+            // Model entry animation
+            if (modelEntryAnimation.active && modelGroup) {
+                modelEntryAnimation.progress += 0.01;
+                if (modelEntryAnimation.progress >= 1) {
+                    modelEntryAnimation.active = false;
+                    modelEntryAnimation.progress = 1;
+                }
+                
+                // Move from right to left
+                const targetX = -modelGroup.position.x * 0.15; // Target near center
+                modelGroup.position.x = 15 - (modelEntryAnimation.progress * (15 - targetX));
+            }
+            
+            // Animate wheels spinning
+            if (partsRef.wheels && partsRef.wheels.length > 0) {
+                partsRef.wheels.forEach(wheel => {
+                    wheel.rotation.x += 0.1; // Spin wheels
+                });
+            }
+            
+            // Apply part animations
+            Object.keys(partAnimations).forEach(partKey => {
+                const animation = partAnimations[partKey];
+                if (animation && animation.type !== 'none') {
+                    const parts = partsRef[partKey];
+                    if (parts && parts.length > 0) {
+                        parts.forEach(mesh => {
+                            if (!mesh.userData.animationData) {
+                                mesh.userData.animationData = {
+                                    time: 0,
+                                    originalRotation: {
+                                        x: mesh.rotation.x,
+                                        y: mesh.rotation.y,
+                                        z: mesh.rotation.z
+                                    }
+                                };
+                            }
+                            
+                            // Spin on X-axis - stays in place
+                            if (animation.type === 'spinX') {
+                                mesh.rotation.x += 0.05;
+                            }
+                        });
+                    }
+                }
+            });
+            
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function createUI() {
+            const partsList = document.getElementById('parts-list');
+            
+            parts.forEach(part => {
+                const section = document.createElement('div');
+                section.className = 'part-section';
+                
+                const button = document.createElement('button');
+                button.className = 'part-button';
+                button.innerHTML = `
+                    <span>${part.display}</span>
+                    <span class="arrow">▼</span>
+                `;
+                
+                const options = document.createElement('div');
+                options.className = 'options';
+                
+                // Colors
+                const colorsDiv = document.createElement('div');
+                colorsDiv.innerHTML = '<div class="option-label">Colors</div>';
+                const colorGrid = document.createElement('div');
+                colorGrid.className = 'color-grid';
+                
+                colorOptions.forEach(color => {
+                    const btn = document.createElement('button');
+                    btn.className = 'color-button';
+                    btn.style.backgroundColor = color.color;
+                    btn.title = color.name;
+                    btn.onclick = () => changeColor(part.key, color.color);
+                    colorGrid.appendChild(btn);
+                });
+                
+                colorsDiv.appendChild(colorGrid);
+                options.appendChild(colorsDiv);
+                
+                // Textures
+                const texturesDiv = document.createElement('div');
+                texturesDiv.innerHTML = '<div class="option-label">Textures</div>';
+                const textureGrid = document.createElement('div');
+                textureGrid.className = 'texture-grid';
+                
+                textureOptions.forEach(texture => {
+                    const btn = document.createElement('button');
+                    btn.className = 'texture-button';
+                    btn.textContent = texture.name;
+                    btn.onclick = () => changeTexture(part.key, texture.type);
+                    textureGrid.appendChild(btn);
+                });
+                
+                texturesDiv.appendChild(textureGrid);
+                options.appendChild(texturesDiv);
+                
+                // Transparency
+                const transparencyDiv = document.createElement('div');
+                transparencyDiv.innerHTML = '<div class="option-label">Transparency</div>';
+                const transparencyGrid = document.createElement('div');
+                transparencyGrid.className = 'texture-grid';
+                
+                transparencyOptions.forEach(trans => {
+                    const btn = document.createElement('button');
+                    btn.className = 'texture-button';
+                    btn.textContent = trans.name;
+                    btn.onclick = () => changeTransparency(part.key, trans.value);
+                    transparencyGrid.appendChild(btn);
+                });
+                
+                transparencyDiv.appendChild(transparencyGrid);
+                options.appendChild(transparencyDiv);
+                
+                // Animations (for tail, mouth, nose, and eyes - all spin together)
+                if (part.key === 'tail' || part.key === 'mouth' || part.key === 'nose' || part.key === 'eyes') {
+                    const animationsDiv = document.createElement('div');
+                    animationsDiv.innerHTML = '<div class="option-label">Animation</div>';
+                    const animationsGrid = document.createElement('div');
+                    animationsGrid.className = 'texture-grid';
+                    
+                    const spinBtn = document.createElement('button');
+                    spinBtn.className = 'texture-button';
+                    spinBtn.textContent = 'Spin';
+                    spinBtn.onclick = () => setAnimation(part.key, 'spinX');
+                    animationsGrid.appendChild(spinBtn);
+                    
+                    const stopBtn = document.createElement('button');
+                    stopBtn.className = 'texture-button';
+                    stopBtn.textContent = 'Stop';
+                    stopBtn.onclick = () => setAnimation(part.key, 'none');
+                    animationsGrid.appendChild(stopBtn);
+                    
+                    animationsDiv.appendChild(animationsGrid);
+                    options.appendChild(animationsDiv);
+                }
+                
+                button.onclick = () => {
+                    const isOpen = options.classList.contains('open');
+                    
+                    // Close all other sections
+                    document.querySelectorAll('.options').forEach(o => o.classList.remove('open'));
+                    document.querySelectorAll('.arrow').forEach(a => a.classList.remove('open'));
+                    
+                    // Toggle this section
+                    if (!isOpen) {
+                        options.classList.add('open');
+                        button.querySelector('.arrow').classList.add('open');
+                        highlightPart(part.key);
+                    } else {
+                        clearHighlights();
+                    }
+                };
+                
+                section.appendChild(button);
+                section.appendChild(options);
+                partsList.appendChild(section);
+            });
+        }
+
+        function highlightPart(partKey) {
+            clearHighlights();
+            
+            const parts = partsRef[partKey];
+            if (parts && parts.length > 0) {
+                parts.forEach(mesh => {
+                    if (mesh && mesh.material && mesh.material.emissive) {
+                        mesh.material.emissive.setHex(0x444444);
+                    }
+                });
+            }
+        }
+
+        function clearHighlights() {
+            Object.values(partsRef).forEach(partArray => {
+                if (partArray && partArray.length > 0) {
+                    partArray.forEach(mesh => {
+                        if (mesh && mesh.material && mesh.material.emissive) {
+                            mesh.material.emissive.setHex(0x000000);
+                        }
+                    });
+                }
+            });
+        }
+
+        function changeColor(partKey, color) {
+            console.log(`Changing color for ${partKey} to ${color}`); // Debug log
+            const parts = partsRef[partKey];
+            console.log(`Parts found for ${partKey}:`, parts ? parts.length : 0); // Debug log
+            
+            if (parts && parts.length > 0) {
+                const hexColor = parseInt(color.replace('#', '0x'));
+                parts.forEach((mesh, index) => {
+                    console.log(`  Applying to mesh ${index}:`, mesh.name); // Debug log
+                    if (mesh && mesh.material) {
+                        mesh.material.color.setHex(hexColor);
+                    }
+                });
+                
+                // Track customization
+                customizationData.colors[partKey] = color;
+                
+                // Track change count
+                trackCustomization();
+                
+                // Update gradient background if body color changes
+                if (partKey === 'body') {
+                    updateBackgroundGradient(color);
+                }
+            } else {
+                console.warn(`No parts found for ${partKey}`); // Debug warning
+            }
+        }
+        
+        function trackCustomization() {
+            customizationCount++;
+            freeCustomizationsLeft = Math.max(0, 5 - customizationCount);
+            
+            const customizationsElement = document.getElementById('customizations-left');
+            const valueElement = customizationsElement.querySelector('.value');
+            valueElement.textContent = freeCustomizationsLeft;
+            
+            if (freeCustomizationsLeft === 0) {
+                customizationsElement.classList.add('warning');
+            }
+        }
+        
+        function updateBackgroundGradient(color) {
+            const viewer = document.querySelector('.viewer');
+            if (viewer) {
+                viewer.style.background = `linear-gradient(to bottom, ${color}, #1a1a1a)`;
+            }
+        }
+
+        function changeTexture(partKey, textureType) {
+            const parts = partsRef[partKey];
+            if (parts && parts.length > 0) {
+                parts.forEach(mesh => {
+                    if (mesh && mesh.material) {
+                        const currentColor = mesh.material.color.getHex();
+                        const emissiveColor = mesh.material.emissive ? mesh.material.emissive.getHex() : 0x000000;
+                        
+                        const params = { 
+                            color: currentColor, 
+                            emissive: emissiveColor,
+                            metalness: 0,
+                            roughness: 0.5,
+                            shininess: 30,
+                            transparent: false,
+                            opacity: 1.0,
+                            envMapIntensity: 1.0
+                        };
+                        
+                        switch(textureType) {
+                            case 'metallic':
+                                params.metalness = 0.8;
+                                params.roughness = 0.2;
+                                params.shininess = 100;
+                                break;
+                            case 'glossy':
+                                params.metalness = 0.1;
+                                params.roughness = 0.1;
+                                params.shininess = 100;
+                                break;
+                            case 'matte':
+                                params.metalness = 0;
+                                params.roughness = 1;
+                                params.shininess = 0;
+                                break;
+                            case 'rough':
+                                params.metalness = 0.3;
+                                params.roughness = 0.9;
+                                params.shininess = 10;
+                                break;
+                            case 'chrome':
+                                params.metalness = 1.0;
+                                params.roughness = 0.0;
+                                params.shininess = 200;
+                                params.envMapIntensity = 1.5;
+                                break;
+                            case 'glass':
+                                params.metalness = 0.0;
+                                params.roughness = 0.0;
+                                params.transparent = true;
+                                params.opacity = 0.4;
+                                params.shininess = 100;
+                                break;
+                            case 'plastic':
+                                params.metalness = 0.0;
+                                params.roughness = 0.4;
+                                params.shininess = 60;
+                                break;
+                            case 'rubber':
+                                params.metalness = 0.0;
+                                params.roughness = 0.8;
+                                params.shininess = 5;
+                                break;
+                        }
+                        
+                        mesh.material = new THREE.MeshPhongMaterial(params);
+                    }
+                });
+                
+                // Track customization
+                customizationData.textures[partKey] = textureType;
+                trackCustomization();
+            }
+        }
+
+        function changeTransparency(partKey, opacity) {
+            const parts = partsRef[partKey];
+            if (parts && parts.length > 0) {
+                parts.forEach(mesh => {
+                    if (mesh && mesh.material) {
+                        mesh.material.transparent = opacity < 1.0;
+                        mesh.material.opacity = opacity;
+                        mesh.material.needsUpdate = true;
+                    }
+                });
+                
+                // Track customization
+                customizationData.transparencies[partKey] = opacity;
+                trackCustomization();
+            }
+        }
+
+        function setAnimation(partKey, animationType) {
+            if (animationType === 'none') {
+                delete partAnimations[partKey];
+                delete customizationData.animations[partKey];
+                const parts = partsRef[partKey];
+                if (parts && parts.length > 0) {
+                    parts.forEach(mesh => {
+                        if (mesh && mesh.userData.animationData) {
+                            delete mesh.userData.animationData;
+                        }
+                    });
+                }
+            } else {
+                partAnimations[partKey] = { type: animationType };
+                customizationData.animations[partKey] = animationType;
+                trackCustomization();
+            }
+        }
+        
+        // Countdown Timer
+        function startCountdown() {
+            const endDate = new Date('February 15, 2026 23:59:59').getTime();
+            
+            function updateCountdown() {
+                const now = new Date().getTime();
+                const distance = endDate - now;
+                
+                if (distance < 0) {
+                    document.getElementById('days').textContent = '00';
+                    document.getElementById('hours').textContent = '00';
+                    document.getElementById('minutes').textContent = '00';
+                    document.getElementById('seconds').textContent = '00';
+                    return;
+                }
+                
+                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                document.getElementById('days').textContent = String(days).padStart(2, '0');
+                document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+                document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+                document.getElementById('seconds').textContent = String(seconds).padStart(2, '0');
+            }
+            
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }
+        
+        // Reset Customizations
+        function resetCustomizations() {
+            if (!confirm('Are you sure you want to reset all customizations to default?')) {
+                return;
+            }
+            
+            // Reset tracking
+            customizationCount = 0;
+            freeCustomizationsLeft = 5;
+            customizationData = {
+                colors: {},
+                textures: {},
+                transparencies: {},
+                animations: {}
+            };
+            
+            // Update display
+            const customizationsElement = document.getElementById('customizations-left');
+            customizationsElement.querySelector('.value').textContent = '5';
+            customizationsElement.classList.remove('warning');
+            
+            // Reset background
+            updateBackgroundGradient('#000000');
+            
+            // Stop all animations
+            partAnimations = {};
+            
+            // Reset all parts to default (glass, 50% transparent)
+            Object.values(partsRef).forEach(partArray => {
+                if (partArray && partArray.length > 0) {
+                    partArray.forEach(mesh => {
+                        if (mesh && mesh.material) {
+                            const defaultColor = 0xcccccc; // Light gray default
+                            mesh.material = new THREE.MeshPhongMaterial({
+                                color: defaultColor,
+                                emissive: 0x000000,
+                                metalness: 0.0,
+                                roughness: 0.0,
+                                transparent: true,
+                                opacity: 0.5,
+                                shininess: 100
+                            });
+                            
+                            // Clear animation data
+                            if (mesh.userData.animationData) {
+                                delete mesh.userData.animationData;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            console.log('Customizations reset to default');
+        }
+        
+        // Pre-Order Handler
+        function handlePreOrder() {
+            openCheckout();
+        }
+        
+        function openCheckout() {
+            // Calculate pricing
+            const extraCustomizations = Math.max(0, customizationCount - 5);
+            const customizationCost = extraCustomizations * 50;
+            const basePrice = 999;
+            const shipping = 49;
+            const total = basePrice + customizationCost + shipping;
+            
+            // Update price display
+            document.getElementById('extra-customizations').textContent = extraCustomizations;
+            document.getElementById('customization-cost').textContent = `${customizationCost}.00`;
+            document.getElementById('total-price').textContent = `${total.toLocaleString()}.00`;
+            
+            // Generate customization summary
+            const summaryDiv = document.getElementById('customization-summary');
+            summaryDiv.innerHTML = '';
+            
+            let hasCustomizations = false;
+            
+            // Colors
+            if (Object.keys(customizationData.colors).length > 0) {
+                hasCustomizations = true;
+                for (const [part, color] of Object.entries(customizationData.colors)) {
+                    const item = document.createElement('div');
+                    item.className = 'customization-item';
+                    item.innerHTML = `
+                        <span class="label">${part.charAt(0).toUpperCase() + part.slice(1)} Color</span>
+                        <span class="value" style="color: ${color}">${color}</span>
+                    `;
+                    summaryDiv.appendChild(item);
+                }
+            }
+            
+            // Textures
+            if (Object.keys(customizationData.textures).length > 0) {
+                hasCustomizations = true;
+                for (const [part, texture] of Object.entries(customizationData.textures)) {
+                    const item = document.createElement('div');
+                    item.className = 'customization-item';
+                    item.innerHTML = `
+                        <span class="label">${part.charAt(0).toUpperCase() + part.slice(1)} Texture</span>
+                        <span class="value">${texture.charAt(0).toUpperCase() + texture.slice(1)}</span>
+                    `;
+                    summaryDiv.appendChild(item);
+                }
+            }
+            
+            // Transparency
+            if (Object.keys(customizationData.transparencies).length > 0) {
+                hasCustomizations = true;
+                for (const [part, opacity] of Object.entries(customizationData.transparencies)) {
+                    const item = document.createElement('div');
+                    item.className = 'customization-item';
+                    item.innerHTML = `
+                        <span class="label">${part.charAt(0).toUpperCase() + part.slice(1)} Transparency</span>
+                        <span class="value">${Math.round(opacity * 100)}%</span>
+                    `;
+                    summaryDiv.appendChild(item);
+                }
+            }
+            
+            // Animations
+            if (Object.keys(customizationData.animations).length > 0) {
+                hasCustomizations = true;
+                for (const [part, anim] of Object.entries(customizationData.animations)) {
+                    const item = document.createElement('div');
+                    item.className = 'customization-item';
+                    item.innerHTML = `
+                        <span class="label">${part.charAt(0).toUpperCase() + part.slice(1)} Animation</span>
+                        <span class="value">${anim.charAt(0).toUpperCase() + anim.slice(1)}</span>
+                    `;
+                    summaryDiv.appendChild(item);
+                }
+            }
+            
+            if (!hasCustomizations) {
+                summaryDiv.innerHTML = '<div class="customization-item"><span class="label">Default Configuration</span><span class="value">No customizations</span></div>';
+            }
+            
+            // Show modal
+            document.getElementById('checkout-modal').classList.add('active');
+        }
+        
+        function closeCheckout() {
+            document.getElementById('checkout-modal').classList.remove('active');
+        }
+        
+        function processCheckout() {
+            // Validate form
+            const name = document.getElementById('customer-name').value.trim();
+            const email = document.getElementById('customer-email').value.trim();
+            const phone = document.getElementById('customer-phone').value.trim();
+            const address = document.getElementById('customer-address').value.trim();
+            const city = document.getElementById('customer-city').value.trim();
+            const country = document.getElementById('customer-country').value;
+            
+            if (!name || !email || !phone || !address || !city || !country) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            // Email validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Please enter a valid email address.');
+                return;
+            }
+            
+            // Calculate final price
+            const extraCustomizations = Math.max(0, customizationCount - 5);
+            const total = 999 + (extraCustomizations * 50) + 49;
+            
+            // Prepare order data
+            const orderData = {
+                customer: {
+                    name,
+                    email,
+                    phone,
+                    address,
+                    city,
+                    country
+                },
+                customizations: customizationData,
+                pricing: {
+                    basePrice: 999,
+                    customizationCost: extraCustomizations * 50,
+                    shipping: 49,
+                    total: total
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            console.log('Order Data:', orderData);
+            
+            // Save order data to localStorage for retrieval after payment
+            localStorage.setItem('pendingOrder', JSON.stringify(orderData));
+            
+            // STRIPE INTEGRATION - Choose one option below:
+            
+            // ========================================
+            // OPTION 1: STRIPE PAYMENT LINK (EASIEST - RECOMMENDED)
+            // ========================================
+            // No backend needed! Just create a Payment Link in Stripe Dashboard
+            // 
+            // Steps to set up:
+            // 1. Go to https://stripe.com and create an account
+            // 2. Go to Payment Links section in your dashboard
+            // 3. Create a new product: "Gamma D Custom" for $999
+            // 4. Create a Payment Link for that product
+            // 5. Copy the Payment Link URL and replace below:
+            
+            const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/YOUR_PAYMENT_LINK_HERE';
+            
+            if (STRIPE_PAYMENT_LINK.includes('YOUR_PAYMENT_LINK_HERE')) {
+                // Development mode - show instructions
+                alert(`✅ Order Validated!\n\nTotal: $${total.toLocaleString()}.00\n\n🔧 TO ENABLE PAYMENTS:\n\n1. Sign up at stripe.com\n2. Create a Payment Link for $${total}\n3. Replace STRIPE_PAYMENT_LINK in the code\n4. Test with real card or Stripe test cards\n\nOrder details saved to console.`);
+                closeCheckout();
+            } else {
+                // Production mode - redirect to Stripe
+                // Add customer email as a URL parameter
+                const paymentUrl = `${STRIPE_PAYMENT_LINK}?prefilled_email=${encodeURIComponent(email)}`;
+                
+                // Show loading message
+                const button = event.target;
+                button.disabled = true;
+                button.textContent = 'Redirecting to checkout...';
+                
+                // Redirect to Stripe Payment Link
+                window.location.href = paymentUrl;
+            }
+            
+            // ========================================
+            // OPTION 2: STRIPE CHECKOUT (Advanced - requires backend)
+            // ========================================
+            /*
+            // This option gives you more control but requires a backend server
+            
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = 'Processing...';
+            
+            fetch('YOUR_BACKEND_URL/create-checkout-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(orderData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Initialize Stripe
+                const stripe = Stripe('pk_test_YOUR_PUBLISHABLE_KEY');
+                
+                // Redirect to Stripe Checkout
+                return stripe.redirectToCheckout({
+                    sessionId: data.sessionId
+                });
+            })
+            .then(result => {
+                if (result.error) {
+                    alert('Error: ' + result.error.message);
+                    button.disabled = false;
+                    button.textContent = 'Place Order';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                button.disabled = false;
+                button.textContent = 'Place Order';
+            });
+            */
+            
+            // ========================================
+            // BACKEND EXAMPLE (Node.js + Express)
+            // ========================================
+            /*
+            const express = require('express');
+            const stripe = require('stripe')('sk_test_YOUR_SECRET_KEY');
+            const app = express();
+            
+            app.use(express.json());
+            
+            app.post('/create-checkout-session', async (req, res) => {
+                const { customer, pricing, customizations } = req.body;
+                
+                const session = await stripe.checkout.sessions.create({
+                    payment_method_types: ['card'],
+                    line_items: [
+                        {
+                            price_data: {
+                                currency: 'usd',
+                                product_data: {
+                                    name: 'Gamma D Custom Edition',
+                                    description: JSON.stringify(customizations),
+                                },
+                                unit_amount: pricing.total * 100, // Amount in cents
+                            },
+                            quantity: 1,
+                        },
+                    ],
+                    mode: 'payment',
+                    customer_email: customer.email,
+                    success_url: 'https://yourdomain.com/success',
+                    cancel_url: 'https://yourdomain.com/cancel',
+                    metadata: {
+                        customerName: customer.name,
+                        customerPhone: customer.phone,
+                        customizations: JSON.stringify(customizations)
+                    }
+                });
+                
+                res.json({ sessionId: session.id });
+            });
+            
+            app.listen(3000, () => console.log('Server running on port 3000'));
+            */
+        }
+        
+        // Submit customization via email
+        async function submitCustomization() {
+            const emailInput = document.getElementById('user-email');
+            const email = emailInput.value.trim();
+            const submitButton = document.querySelector('.submit-button');
+            const successMsg = document.getElementById('success-msg');
+            const errorMsg = document.getElementById('error-msg');
+            
+            // Hide messages
+            successMsg.classList.remove('show');
+            errorMsg.classList.remove('show');
+            
+            // Validate email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!email || !emailRegex.test(email)) {
+                errorMsg.textContent = '✗ Please enter a valid email address.';
+                errorMsg.classList.add('show');
+                return;
+            }
+            
+            // Disable button
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+            
+            // Prepare customization summary
+            const summary = {
+                userEmail: email,
+                timestamp: new Date().toISOString(),
+                customizations: {
+                    colors: customizationData.colors,
+                    textures: customizationData.textures,
+                    transparencies: customizationData.transparencies,
+                    animations: customizationData.animations
+                }
+            };
+            
+            // Format email body
+            let emailBody = `New Gamma D Customization Submission\n\n`;
+            emailBody += `User Email: ${email}\n`;
+            emailBody += `Submitted: ${new Date().toLocaleString()}\n\n`;
+            emailBody += `CUSTOMIZATIONS:\n`;
+            emailBody += `===============\n\n`;
+            
+            if (Object.keys(customizationData.colors).length > 0) {
+                emailBody += `Colors:\n`;
+                for (const [part, color] of Object.entries(customizationData.colors)) {
+                    emailBody += `  - ${part}: ${color}\n`;
+                }
+                emailBody += `\n`;
+            }
+            
+            if (Object.keys(customizationData.textures).length > 0) {
+                emailBody += `Textures:\n`;
+                for (const [part, texture] of Object.entries(customizationData.textures)) {
+                    emailBody += `  - ${part}: ${texture}\n`;
+                }
+                emailBody += `\n`;
+            }
+            
+            if (Object.keys(customizationData.transparencies).length > 0) {
+                emailBody += `Transparency:\n`;
+                for (const [part, opacity] of Object.entries(customizationData.transparencies)) {
+                    emailBody += `  - ${part}: ${Math.round(opacity * 100)}%\n`;
+                }
+                emailBody += `\n`;
+            }
+            
+            if (Object.keys(customizationData.animations).length > 0) {
+                emailBody += `Animations:\n`;
+                for (const [part, anim] of Object.entries(customizationData.animations)) {
+                    emailBody += `  - ${part}: ${anim}\n`;
+                }
+            }
+            
+            // Log to console (for development)
+            console.log('Customization Data:', summary);
+            console.log('Email Body:', emailBody);
+            
+            // IMPORTANT: Replace with your actual email service
+            // For now, this uses mailto which opens the user's email client
+            // For production, you should use a backend service like:
+            // - Formspree (https://formspree.io)
+            // - EmailJS (https://www.emailjs.com)
+            // - Your own server with Nodemailer
+            
+            // Option 1: mailto (opens email client) - works immediately
+            const mailtoLink = `mailto:your-email@example.com?subject=Gamma D Customization from ${encodeURIComponent(email)}&body=${encodeURIComponent(emailBody)}`;
+            window.location.href = mailtoLink;
+            
+            // Show success message
+            setTimeout(() => {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Design';
+                successMsg.classList.add('show');
+                
+                // Clear form
+                emailInput.value = '';
+                
+                // Hide success message after 5 seconds
+                setTimeout(() => {
+                    successMsg.classList.remove('show');
+                }, 5000);
+            }, 1000);
+            
+            /* 
+            // Option 2: Use EmailJS (requires setup at https://www.emailjs.com)
+            // Uncomment and configure this for production use:
+            
+            try {
+                const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        service_id: 'YOUR_SERVICE_ID',
+                        template_id: 'YOUR_TEMPLATE_ID',
+                        user_id: 'YOUR_PUBLIC_KEY',
+                        template_params: {
+                            to_email: 'your-email@example.com',
+                            from_email: email,
+                            message: emailBody,
+                            customization_data: JSON.stringify(summary, null, 2)
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    successMsg.classList.add('show');
+                    emailInput.value = '';
+                } else {
+                    throw new Error('Failed to send');
+                }
+            } catch (error) {
+                errorMsg.textContent = '✗ Failed to submit. Please try again.';
+                errorMsg.classList.add('show');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Design';
+            }
+            */
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
